@@ -1,93 +1,52 @@
 import requests
 import json
+import os
+import time  # <--- Added for timing
 
 # ==========================================
 # 1. CONFIGURATION
 # ==========================================
 SEARCH_URL = "http://localhost:9000/search"
+QUERIES_FILE = "queries_train.json"
 
-TEST_DATA = {
-    "Mount Everest climbing expeditions": ["47353693", "5208803", "20852640", "37943414", "42179", "11539001",
-                                           "20562313", "39405618", "35940793", "56054890", "61445869", "40523408",
-                                           "43048099", "47269005", "43792510", "361977", "23984462", "30637506",
-                                           "45716294", "73572"],
-    "Great Fire of London 1666": ["7669549", "382247", "9914015", "6825961", "3416655", "227331", "9166271", "53640051",
-                                  "62421897", "9931349", "12286", "3477076", "42849849", "44140165", "1180897", "36223",
-                                  "2809377", "52946", "27808", "6570682"],
-    "Nanotechnology materials science": ["21488", "868108", "19622", "7200558", "38324933", "7064233", "14431229",
-                                         "21561", "4653948", "2154572", "19637", "60786392", "14661057", "10209776",
-                                         "1234517", "6736363", "707340", "8327305", "63399479", "39827483"],
-    "Fossil fuels climate change": ["48146", "5042951", "12686181", "3201", "46255716", "49108347", "23423379",
-                                    "9528025", "12474403", "2260887", "2119179", "39208945", "2119174", "326324",
-                                    "31253390", "26894208", "11544231", "5565588", "44993509", "25447994"],
-    "DNA double helix discovery": ["922489", "90472", "2091495", "16289", "11461", "56054758", "234248", "9481589",
-                                   "7955", "1195321", "539864", "35224853", "26761973", "235517", "4173711", "2584287",
-                                   "12524652", "2060438", "2848286", "891696"],
-    "Printing press invention Gutenberg": ["23295", "15745", "7695885", "47300", "11012076", "255041", "44723",
-                                           "286327", "662134", "5843862", "275989", "1041702", "28679509", "1591936",
-                                           "18723", "23036", "16688458", "7643744", "3277654", "11502064"],
-    "Ancient Egypt pyramids pharaohs": ["864667", "12224", "1114299", "874", "23294", "14015860", "152500", "242606",
-                                        "377363", "1979299", "113090", "18085095", "21476519", "1078259", "1167097",
-                                        "1942584", "2672171", "245160", "10331", "1866773"],
-    "Gothic literature Mary Shelley": ["27885687", "18580673", "12622", "55967644", "2560618", "16798051", "55968970",
-                                       "25367322", "55934681", "49917", "55864683", "1358189", "11418879", "455401",
-                                       "73375", "26133173", "588734", "3858266", "4994709", "4100315"],
-    "Robotics automation industry": ["47642826", "20903754", "147918", "173354", "5814492", "43154679", "44455145",
-                                     "47752705", "20072860", "62493070", "39915819", "13946920", "22935831", "38487506",
-                                     "871903", "22765540", "49455126", "1920674", "64316138", "22469488"],
-    "Television invention broadcast media": ["3636075", "29831", "527026", "14682695", "113604", "36937", "39570",
-                                             "1359910", "519148", "1361581", "628485", "6076115", "1772690", "42890",
-                                             "231064", "178808", "339790", "19641", "18581669", "441611"],
-    "Wright brothers first flight": ["58410", "1045608", "282713", "43042840", "25237710", "406154", "8416924",
-                                     "1368589", "21859436", "5033561", "177680", "201971", "3215475", "55963183",
-                                     "2323825", "12675057", "2812602", "14508809", "22436359", "3136936"],
-    "Steam locomotive transportation history": ["196788", "27692", "211919", "17423952", "17717", "1115483", "16087606",
-                                                "25715", "1089049", "587997", "1090642", "973665", "8076173", "3380112",
-                                                "1085771", "1424698", "390777", "496038", "1044456", "154176"],
-    "Currency history gold standard": ["37412", "55719", "22156522", "395888", "1978363", "1138146", "1020809",
-                                       "3606600", "310156", "2763667", "177666", "1762386", "38725", "18717338",
-                                       "180923", "1551612", "2235798", "3193951", "28947108", "5665"],
-    "Renaissance art Leonardo da Vinci": ["18079", "18111261", "73190", "70889", "444673", "33585564", "1763936",
-                                          "1843479", "1245580", "1670561", "165442", "2730547", "26570157", "2720863",
-                                          "2534622", "1643676", "33050722", "2406521", "311401", "14426388"],
-    "Shakespeare plays Elizabethan theatre": ["39566", "2963660", "12677324", "2116548", "60914360", "199185", "606261",
-                                              "286040", "5786772", "597112", "376691", "24868842", "311052", "401353",
-                                              "46947", "8206517", "32897", "308807", "4662359", "14188272"],
-    "Solar eclipse astronomy observation": ["5024887", "60880859", "28001670", "7839", "66111", "25366404", "25695417",
-                                            "25283706", "25208143", "15935262", "23612494", "25709017", "9770",
-                                            "1524517", "25750536", "647895", "25289336", "507266", "25289340",
-                                            "25708856"],
-    "Renaissance architecture Florence Italy": ["41524", "220884", "2722587", "322915", "45632842", "856970", "90007",
-                                                "2239627", "26809260", "4735624", "1080994", "11525", "1079708",
-                                                "5334653", "357090", "8382470", "217036", "8961452", "7965206",
-                                                "25532"],
-    "Impressionism Monet Renoir": ["60214787", "15169", "21435370", "46351674", "57826068", "25156446", "66670770",
-                                   "43720874", "365150", "6548", "1751410", "49089716", "24546", "1629184", "39078781",
-                                   "37179845", "31289501", "63716043", "41668858", "19485405"],
-    "Samurai code Bushido Japan": ["65734", "5411161", "28288", "26186063", "251052", "163427", "26538695", "164945",
-                                   "6858787", "1465824", "495545", "5757057", "10812754", "557407", "175317", "1031547",
-                                   "2346706", "3137571", "27001277", "4766869"],
-    "Fossil record paleontology evidence": ["23084", "7991116", "10958", "4373065", "6771226", "53365898", "331755",
-                                            "41825123", "2339577", "37799200", "24242584", "236706", "2866717",
-                                            "344195", "56926421", "188739", "37799131", "37799002", "367492",
-                                            "37799107"]
-}
+
+def load_queries(file_path):
+    print(f"📂 Loading queries from {file_path}...")
+    if not os.path.exists(file_path):
+        print(f"❌ Error: File '{file_path}' not found!")
+        exit(1)
+
+    with open(file_path, 'r', encoding='utf-8') as f:
+        data = json.load(f)
+    return data
+
+
+# Load the data dynamically
+TEST_DATA = load_queries(QUERIES_FILE)
 
 
 def evaluate_engine():
     total_p5 = 0
+    total_p10 = 0
     total_f1_30 = 0
     total_quality = 0
+    total_time = 0  # <--- Accumulator for time
     queries_count = len(TEST_DATA)
 
     print(f"🚀 Starting Evaluation for {queries_count} queries...\n")
-    print(f"{'QUERY':<32} | {'P@5':<8} | {'F1@30':<8} | {'SCORE'}")
-    print("-" * 75)
+    # Updated Header to include Time
+    print(f"{'QUERY':<30} | {'P@5':<8} | {'P@10':<8} | {'F1@30':<8} | {'TIME (ms)':<9} | {'SCORE'}")
+    print("-" * 95)
 
     for query, expected_ids in TEST_DATA.items():
         try:
-            # 1. Send Query
+            # 1. Send Query & Measure Time
+            start_time = time.time()  # <--- Start Timer
             response = requests.get(SEARCH_URL, params={'query': query})
+            end_time = time.time()  # <--- Stop Timer
+
+            duration_ms = (end_time - start_time) * 1000  # Convert to milliseconds
+            total_time += duration_ms
 
             if response.status_code != 200:
                 print(f"❌ Error: {query} returned status {response.status_code}")
@@ -95,7 +54,11 @@ def evaluate_engine():
 
             # 2. Extract IDs
             results_with_titles = response.json()
-            actual_ids = [str(item[0]) for item in results_with_titles]
+            if not results_with_titles:
+                actual_ids = []
+            else:
+                actual_ids = [str(item[0]) for item in results_with_titles]
+
             expected_set = set(expected_ids)
 
             # ==========================
@@ -109,7 +72,17 @@ def evaluate_engine():
                 p_5 = 0.0
 
             # ==========================
-            # 4. METRIC: F1@30
+            # 4. METRIC: Precision@10
+            # ==========================
+            top_10 = actual_ids[:10]
+            if len(top_10) > 0:
+                rel_10 = len(set(top_10).intersection(expected_set))
+                p_10 = rel_10 / 10.0
+            else:
+                p_10 = 0.0
+
+            # ==========================
+            # 5. METRIC: F1@30
             # ==========================
             top_30 = actual_ids[:30]
             if len(top_30) > 0:
@@ -131,18 +104,20 @@ def evaluate_engine():
                 f1_30 = 0.0
 
             # ==========================
-            # 5. ASSIGNMENT METRIC
+            # 6. ASSIGNMENT METRIC
             # ==========================
-            # Harmonic Mean of P@5 and F1@30
             if (p_5 + f1_30) > 0:
                 score = (2 * p_5 * f1_30) / (p_5 + f1_30)
             else:
                 score = 0.0
 
-            # Print
-            print(f"{query[:30]:<32} | {p_5:.2%}   | {f1_30:.2%}   | {score:.4f}")
+            # Print (Truncate query for display)
+            display_query = (query[:27] + '..') if len(query) > 27 else query
+            print(
+                f"{display_query:<30} | {p_5:.2%}   | {p_10:.2%}   | {f1_30:.2%}   | {duration_ms:>6.0f} ms | {score:.4f}")
 
             total_p5 += p_5
+            total_p10 += p_10
             total_f1_30 += f1_30
             total_quality += score
 
@@ -150,16 +125,23 @@ def evaluate_engine():
             print(f"⚠️ Exception for '{query}': {e}")
 
     # ==========================================
-    # 6. SUMMARY
+    # 7. SUMMARY
     # ==========================================
-    avg_p5 = total_p5 / queries_count
-    avg_f1_30 = total_f1_30 / queries_count
-    avg_score = total_quality / queries_count
+    if queries_count > 0:
+        avg_p5 = total_p5 / queries_count
+        avg_p10 = total_p10 / queries_count
+        avg_f1_30 = total_f1_30 / queries_count
+        avg_score = total_quality / queries_count
+        avg_time = total_time / queries_count
 
-    print("-" * 75)
-    print(f"📊 Average Precision@5: {avg_p5:.2%}")
-    print(f"📊 Average F1@30:       {avg_f1_30:.2%}")
-    print(f"🏆 Average Final Score: {avg_score:.4f}")
+        print("-" * 95)
+        print(f"📊 Average Precision@5:  {avg_p5:.2%}")
+        print(f"📊 Average Precision@10: {avg_p10:.2%}")
+        print(f"📊 Average F1@30:        {avg_f1_30:.2%}")
+        print(f"⏱️  Average Query Time:   {avg_time:.2f} ms")
+        print(f"🏆 Average Final Score:  {avg_score:.4f}")
+    else:
+        print("\n⚠️ No queries were processed.")
 
 
 if __name__ == "__main__":

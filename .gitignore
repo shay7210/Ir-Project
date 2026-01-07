@@ -3,3 +3,4 @@
 *.pkl
 *.csv.gz
 my_gcp_key.json
+*.bin

@@ -95,7 +95,7 @@ id_title_pairs = parquetFile.select("id", "title").rdd
 id_to_title_dict = id_title_pairs.collectAsMap()
 
 # Save to Pickle
-local_dict_file = "id_to_title.pkl"
+local_dict_file = "../id_to_title.pkl"
 with open(local_dict_file, 'wb') as f:
     pickle.dump(id_to_title_dict, f)
 
@@ -135,7 +135,7 @@ inverted = InvertedIndex()
 inverted.posting_locs = super_posting_locs
 inverted.df = w2df_dict_body
 inverted.write_index('.', 'index_body')
-upload_file('index_body.pkl', 'postings_gcp/postings_body/index.pkl')
+upload_file('../index_body.pkl', 'postings_gcp/postings_body/index.pkl')
 print("✅ Body Index Done!")
 
 # ====================================================
@@ -164,7 +164,7 @@ inverted_title = InvertedIndex()
 inverted_title.posting_locs = super_posting_locs_title
 inverted_title.df = w2df_dict_title
 inverted_title.write_index('.', 'index_title')
-upload_file('index_title.pkl', 'postings_gcp/postings_title/index.pkl')
+upload_file('../index_title.pkl', 'postings_gcp/postings_title/index.pkl')
 print("✅ Title Index Done!")
 
 # ====================================================
@@ -202,7 +202,7 @@ inverted_anchor = InvertedIndex()
 inverted_anchor.posting_locs = super_posting_locs_anchor
 inverted_anchor.df = w2df_dict_anchor
 inverted_anchor.write_index('.', 'index_anchor')
-upload_file('index_anchor.pkl', 'postings_gcp/postings_anchor/index.pkl')
+upload_file('../index_anchor.pkl', 'postings_gcp/postings_anchor/index.pkl')
 print("✅ Anchor Index Done!")
 
 print("\n🎉 ALL TASKS COMPLETE.")
