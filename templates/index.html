@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Search Engine Test</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 800px; margin: 2rem auto; padding: 0 1rem; color: #333; }
+        h1 { text-align: center; color: #444; }
+        .search-box { display: flex; gap: 10px; margin-bottom: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); padding: 15px; border-radius: 8px; background: #f9f9f9; }
+        input { flex-grow: 1; padding: 12px; font-size: 16px; border: 1px solid #ddd; border-radius: 4px; }
+        select, button { padding: 12px; font-size: 16px; cursor: pointer; border: 1px solid #ddd; border-radius: 4px; }
+        button { background-color: #007bff; color: white; border: none; font-weight: bold; }
+        button:hover { background-color: #0056b3; }
+
+        #results { list-style: none; padding: 0; margin-top: 20px; }
+        .result-item { padding: 15px; border-bottom: 1px solid #eee; transition: background 0.2s; }
+        .result-item:hover { background-color: #f0f8ff; }
+
+        .result-title { font-size: 18px; font-weight: bold; color: #1a0dab; text-decoration: none; display: block; margin-bottom: 4px; }
+        .result-title:hover { text-decoration: underline; }
+        .result-id { font-size: 12px; color: #006621; }
+
+        .count { color: #666; margin-bottom: 10px; font-size: 0.9em; text-align: right; }
+    </style>
+</head>
+<body>
+    <h1>🔎 Wiki Search Engine</h1>
+
+    <div class="search-box">
+        <input type="text" id="query" placeholder="Enter search query..." onkeydown="if(event.key==='Enter') runSearch()">
+        <select id="endpoint">
+            <option value="search">Best Match (/search)</option>
+            <option value="search_title">Title Only (/search_title)</option>
+            <option value="search_body">Body Only (/search_body)</option>
+            <option value="search_anchor">Anchor Text (/search_anchor)</option>
+        </select>
+        <button onclick="runSearch()">Search</button>
+    </div>
+
+    <div id="status" class="count"></div>
+    <ul id="results"></ul>
+
+    <script>
+        async function runSearch() {
+            const query = document.getElementById('query').value;
+            const endpoint = document.getElementById('endpoint').value;
+            const resultsList = document.getElementById('results');
+            const statusDiv = document.getElementById('status');
+
+            if (!query) return;
+
+            // UI Feedback
+            statusDiv.textContent = "Searching...";
+            resultsList.innerHTML = "";
+
+            try {
+                const response = await fetch(`/${endpoint}?query=${encodeURIComponent(query)}`);
+                const data = await response.json();
+
+                statusDiv.textContent = `Found ${data.length} results for "${query}"`;
+
+                if (data.length === 0) {
+                    resultsList.innerHTML = "<li class='result-item'>No results found.</li>";
+                    return;
+                }
+
+                // --- KEY FIX IS HERE ---
+                data.forEach(item => {
+                    // Backend now returns [id, title]
+                    // If title is missing/null, fallback to "No Title"
+                    const docId = item[0];
+                    const title = item[1] || "No Title";
+
+                    const li = document.createElement('li');
+                    li.className = 'result-item';
+
+                    // Create a clickable link to Wikipedia
+                    const wikiUrl = `https://en.wikipedia.org/wiki?curid=${docId}`;
+
+                    li.innerHTML = `
+                        <a href="${wikiUrl}" target="_blank" class="result-title">${title}</a>
+                        <div class="result-id">Doc ID: ${docId}</div>
+                    `;
+                    resultsList.appendChild(li);
+                });
+
+            } catch (error) {
+                console.error("Error:", error);
+                statusDiv.textContent = "Error fetching results. Check console.";
+            }
+        }
+    </script>
+</body>
+</html>
