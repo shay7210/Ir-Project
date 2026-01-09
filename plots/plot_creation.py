@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 # --- DATA ---
 # Fixed: Added 4th label to match the 4 data points
 attempts_labels = ['Baseline\n(Raw TF)', 'BM25\nOnly', 'BM25 +\nPageRank', 'Optimized\n(Pruning)']
-execution_times = [8.0, 5.8, 6.1, 0.1]
+execution_times = [8.0, 5.8, 6.1, 0.4]
 p_at_10_scores = [14.0, 22.0, 33.5, 48.8]
 
 # --- GRAPH 1: EXECUTION TIME ---
