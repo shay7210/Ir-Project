@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-APP_USER="shhara"
+APP_USER="shay7210"
 APP_HOME="/home/${APP_USER}"
 VENV_DIR="${APP_HOME}/venv"
 
@@ -22,3 +22,11 @@ pip install \
   'google-cloud-storage' \
   'numpy>=1.23.2,<3'
 "
+# 1. Create a directory for your data
+sudo -u "${APP_USER}" mkdir -p "${APP_HOME}/data"
+
+# 2. Download data from your bucket (REPLACE WITH YOUR BUCKET NAME)
+# NOTE: The -r flag is for directories (like your postings folder)
+sudo -u "${APP_USER}" gsutil -m cp -r gs://YOUR_BUCKET_NAME_HERE/* "${APP_HOME}/data/"
+
+echo "Startup script finished successfully!"

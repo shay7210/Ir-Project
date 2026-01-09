@@ -6,13 +6,13 @@ import time
 
 # --- CONFIGURATION ---
 # 1. Path to your ID -> Title map (Change this to your actual file)
-map_path = "/home/shay/Desktop/UniAssignements/IR/ir_proj_20251213/ir_proj_20251213/inverted_indexes_pkls/id_to_title.pkl"
+map_path = "../inverted_indexes_pkls/id_to_title.pkl"
 
 # 2. Path to the pageviews dump
-pv_path = "/home/shay/Desktop/UniAssignements/IR/ir_proj_20251213/ir_proj_20251213/create_indexes/pageviews-202108-user.bz2"
+pv_path = "../create_indexes/pageviews-202108-user.bz2"
 
 # 3. Output path for the new PageView index
-output_path = "/home/shay/Desktop/UniAssignements/IR/ir_proj_20251213/ir_proj_20251213/inverted_indexes_pkls/pageviews_index.pkl"
+output_path = "../inverted_indexes_pkls/pageviews_index.pkl"
 
 # --- MAIN LOGIC ---
 

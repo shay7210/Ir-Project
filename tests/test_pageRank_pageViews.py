@@ -4,7 +4,7 @@ import json
 # ==========================================
 # CONFIGURATION
 # ==========================================
-BASE_URL = "http://localhost:9000"
+BASE_URL = "http://34.133.219.233:9000/"
 TEST_IDS = [12, 25, 1000, 999999999]  # Includes valid IDs and a  non-existent one
 
 
