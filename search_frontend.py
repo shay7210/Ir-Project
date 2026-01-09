@@ -101,7 +101,7 @@ def download_blob(remote_path, local_filename):
 
 
 def load_index(index_name, remote_folder):
-    local_name = f"{index_name}.pkl"
+    local_name = f"inverted_indexes_pkls/{index_name}.pkl"
     remote_path = f"{remote_folder}/index.pkl"
     download_blob(remote_path, local_name)
     if not os.path.exists(local_name): return None
@@ -112,9 +112,9 @@ def load_index(index_name, remote_folder):
 
 def load_pagerank():
     """Loads PageRank from the CSV.GZ file."""
-    local_name = "pagerank.csv.gz"
+    local_name = "inverted_indexes_pkls/pagerank.csv.gz"
     # Update this path if it changes in your bucket
-    remote_path = "postings_gcp/pr/part-00000-c5e092f9-9241-410d-955d-ec78de539def-c000.csv.gz"
+    remote_path = "pr/part-00000-c5e092f9-9241-410d-955d-ec78de539def-c000.csv.gz"
 
     download_blob(remote_path, local_name)
 
@@ -133,7 +133,7 @@ def load_pagerank():
     return pr_dict
 
 def load_id_map():
-    local_name = "id_to_title.pkl"
+    local_name = "inverted_indexes_pkls/id_to_title.pkl"
     remote_path = "postings_gcp/id_to_title/id_to_title.pkl"
     download_blob(remote_path, local_name)
     if os.path.exists(local_name):
@@ -144,9 +144,9 @@ def load_id_map():
 
 def load_pageviews():
     """Loads PageViews from a Pickle file."""
-    local_name = "pageviews.pkl"
+    local_name = "inverted_indexes_pkls/pageviews_index.pkl"
     # Adjust this remote path to match where you eventually put the file in your bucket
-    remote_path = "postings_gcp/pageviews/pageviews.pkl"
+    remote_path = "postings_gcp/pageviews/pageviews_index.pkl"
 
     download_blob(remote_path, local_name)
 
@@ -226,11 +226,11 @@ class MyFlaskApp(Flask):
         print("🚀 Initializing Server...")
         init_gcp()
 
-        global index_body, index_title, index_anchor, page_rank, id_to_title
+        global index_body, index_title, index_anchor, page_rank, id_to_title, page_views
 
         # --- FIX 1: ADD THIS LINE ---
         print("⬇️ Downloading Postings to Local Disk...")
-        download_all_bin_files()
+        # download_all_bin_files()
         # ----------------------------
 
         print("LOADING DATA...")
@@ -403,22 +403,25 @@ def get_pagerank():
     return jsonify(res)
 
 
-@app.route("/get_pageviews", methods=['POST'])
-def get_pageviews():
-    ''' Returns a list of pageview counts for the given Wiki IDs. '''
+@app.route("/get_pageview", methods=['POST'])
+def get_pageview():
+    ''' Returns the number of page views that each of the provide wiki articles
+        had in August 2021.
+    '''
     # 1. Parse JSON input (expecting a list of IDs)
     wiki_ids = request.get_json() or []
 
-    # 2. Retrieve counts (default to 0 if ID or file is missing)
-    # Ensure doc_id is cast to the correct type (usually int in the pkl)
+    # 2. Retrieve counts
     res = []
     for doc_id in wiki_ids:
         try:
-            # Try as integer first (standard for these indexes)
+            # The dictionary keys are likely integers.
+            # We try to convert the input ID to int just in case.
             count = page_views.get(int(doc_id), 0)
         except (ValueError, TypeError):
-            # Fallback for string keys if necessary
+            # If conversion fails, try using the key as is (e.g. string)
             count = page_views.get(doc_id, 0)
+
         res.append(count)
 
     return jsonify(res)

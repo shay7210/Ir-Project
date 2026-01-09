@@ -1,43 +1,48 @@
 import matplotlib.pyplot as plt
 
 # --- DATA ---
-# Renamed variable to 'execution_times' to avoid conflicts
-attempts_data = ['Baseline (Raw TF)', 'BM25 Only', 'Final (BM25 + PageRank)']
-execution_times = [3.2, 3.8, 2.9]
-p_at_10_scores = [14, 22, 33.5]  # Your new scores
+# Fixed: Added 4th label to match the 4 data points
+attempts_labels = ['Baseline\n(Raw TF)', 'BM25\nOnly', 'BM25 +\nPageRank', 'Optimized\n(Pruning)']
+execution_times = [8.0, 5.8, 6.1, 0.1]
+p_at_10_scores = [14.0, 22.0, 33.5, 48.8]
 
 # --- GRAPH 1: EXECUTION TIME ---
-plt.figure(figsize=(6, 4))
-bars = plt.bar(attempts_data, execution_times, color='skyblue')
+plt.figure(figsize=(8, 5))
+# Highlight the final bar in green, others in skyblue
+colors = ['skyblue', 'skyblue', 'skyblue', 'mediumseagreen']
+bars = plt.bar(attempts_labels, execution_times, color=colors)
 
-plt.axhline(y=4, color='red', linestyle='--', label='4s Threshold')
-plt.title('Execution Time per Attempt')
+plt.axhline(y=4, color='red', linestyle='--', label='Max Latency Threshold (4s)')
+plt.title('Execution Time per Experiment')
 plt.ylabel('Time (seconds)')
-plt.ylim(0, 5) # This is fine for times like 3.2, 3.8
+
+# Fixed: Adjusted limit to show the highest value (8s) comfortably
+plt.ylim(0, max(execution_times) + 1)
 plt.legend()
 
 for bar in bars:
     yval = bar.get_height()
-    plt.text(bar.get_x() + bar.get_width()/2, yval + 0.1, f'{yval}s', ha='center', va='bottom')
+    plt.text(bar.get_x() + bar.get_width()/2, yval + 0.1, f'{yval}s', ha='center', va='bottom', fontweight='bold')
 
+plt.tight_layout()
 plt.savefig('time_graph.png')
 print("Saved time_graph.png")
 plt.close()
 
-# --- GRAPH 2: P@10 (FIXED) ---
-plt.figure(figsize=(6, 4))
-bars2 = plt.bar(attempts_data, p_at_10_scores, color='salmon')
+# --- GRAPH 2: PRECISION @ 10 ---
+plt.figure(figsize=(8, 5))
+# Highlight the final bar in green, others in salmon
+colors_p = ['salmon', 'salmon', 'salmon', 'mediumseagreen']
+bars2 = plt.bar(attempts_labels, p_at_10_scores, color=colors_p)
 
-plt.title('Precision at 10 (P@10)')
-plt.ylabel('Score')
-
-# FIX: Removed the 0-1.1 limit. Now it autoscales.
-# Optional: Set it to slightly above your max score (e.g., 40) just to look nice
-plt.ylim(0, max(p_at_10_scores) + 5)
+plt.title('Precision at 10 (P@10) Improvement')
+plt.ylabel('Score (%)')
+plt.ylim(0, max(p_at_10_scores) + 10) # Add headroom for labels
 
 for bar in bars2:
     yval = bar.get_height()
-    plt.text(bar.get_x() + bar.get_width()/2, yval + 0.5, f'{yval}', ha='center', va='bottom')
+    plt.text(bar.get_x() + bar.get_width()/2, yval + 1, f'{yval}%', ha='center', va='bottom', fontweight='bold')
 
+plt.tight_layout()
 plt.savefig('p_at_10_graph.png')
 print("Saved p_at_10_graph.png")

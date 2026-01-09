@@ -7,7 +7,7 @@ import time  # <--- Added for timing
 # 1. CONFIGURATION
 # ==========================================
 SEARCH_URL = "http://localhost:9000/search"
-QUERIES_FILE = "queries_train.json"
+QUERIES_FILE = "../queries_train.json"
 
 
 def load_queries(file_path):

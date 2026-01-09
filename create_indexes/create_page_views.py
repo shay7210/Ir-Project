@@ -1,70 +1,77 @@
+import bz2
 import pickle
 import os
-from google.cloud import storage
+import sys
+import time
 
-# ==========================================
-# CONFIGURATION
-# ==========================================
-BUCKET_NAME = 'wikipidia_ir_project'
-KEY_FILE_PATH = '../my_gcp_key.json'
+# --- CONFIGURATION ---
+# 1. Path to your ID -> Title map (Change this to your actual file)
+map_path = "/home/shay/Desktop/UniAssignements/IR/ir_proj_20251213/ir_proj_20251213/inverted_indexes_pkls/id_to_title.pkl"
 
-# The path where your server expects the file
-DESTINATION_BLOB_NAME = 'postings_gcp/pageviews/pageviews.pkl'
+# 2. Path to the pageviews dump
+pv_path = "/home/shay/Desktop/UniAssignements/IR/ir_proj_20251213/ir_proj_20251213/create_indexes/pageviews-202108-user.bz2"
 
-# Path to your raw text file containing "doc_id count"
-# If you downloaded the course file, it might be named 'pageviews-202108-user.txt'
-RAW_DATA_PATH = 'pageviews.txt'
+# 3. Output path for the new PageView index
+output_path = "/home/shay/Desktop/UniAssignements/IR/ir_proj_20251213/ir_proj_20251213/inverted_indexes_pkls/pageviews_index.pkl"
 
+# --- MAIN LOGIC ---
 
-def get_bucket():
-    if not os.path.exists(KEY_FILE_PATH):
-        raise FileNotFoundError(f"Key file '{KEY_FILE_PATH}' not found!")
-    storage_client = storage.Client.from_service_account_json(KEY_FILE_PATH)
-    return storage_client.bucket(BUCKET_NAME)
+# Step 1: Load the ID Map
+print(f"Loading ID map from: {map_path}...")
+try:
+    with open(map_path, 'rb') as f:
+        id_to_title = pickle.load(f)
+    print(f"Map loaded. Total items: {len(id_to_title)}")
+except FileNotFoundError:
+    print(f"Error: Could not find map file at {map_path}")
+    sys.exit(1)
 
+# Step 2: Process the Pageviews Dump
+wid2pv = {}
+print(f"Processing pageviews from: {pv_path}...")
+start_time = time.time()
+count = 0
 
-def create_and_upload_pageviews():
-    pageviews_dict = {}
+with bz2.open(pv_path, "rt", encoding="utf-8") as f:
+    for line in f:
+        parts = line.split()
 
-    # 1. READ RAW DATA
-    if os.path.exists(RAW_DATA_PATH):
-        print(f"📖 Reading raw data from {RAW_DATA_PATH}...")
-        with open(RAW_DATA_PATH, 'r', encoding='utf-8') as f:
-            for line in f:
-                parts = line.split()
-                if len(parts) >= 2:
-                    try:
-                        # Assumption: format is "doc_id count"
-                        doc_id = int(parts[0])
-                        count = int(parts[1])
-                        pageviews_dict[doc_id] = count
-                    except ValueError:
-                        continue
-        print(f"✅ Loaded {len(pageviews_dict)} documents into dictionary.")
-    else:
-        print(f"⚠️ Raw file '{RAW_DATA_PATH}' not found.")
-        print("   Creating an EMPTY dictionary so the server can start.")
-        # If you have specific IDs you want to test, add them manually here:
-        # pageviews_dict = {123: 1000, 456: 500}
+        # Safety check for column count
+        if len(parts) < 5:
+            continue
 
-    # 2. PICKLE THE DICTIONARY
-    temp_filename = 'pageviews.pkl'
-    print(f"🥒 Pickling data to {temp_filename}...")
-    with open(temp_filename, 'wb') as f:
-        pickle.dump(pageviews_dict, f)
+        # FILTER 1: Only look at English Wikipedia
+        # parts[0] is domain. We want 'en.wikipedia'
+        if parts[0] != 'en.wikipedia':
+            continue
 
-    # 3. UPLOAD TO GCP
-    print(f"☁️ Uploading to gs://{BUCKET_NAME}/{DESTINATION_BLOB_NAME}...")
-    bucket = get_bucket()
-    blob = bucket.blob(DESTINATION_BLOB_NAME)
-    blob.upload_from_filename(temp_filename)
+        # FILTER 2: Skip null IDs
+        # parts[2] is Page ID
+        if parts[2] == 'null':
+            continue
 
-    print("🎉 Success! The file is in the bucket.")
+        try:
+            page_id = int(parts[2])
 
-    # Cleanup local file
-    if os.path.exists(temp_filename):
-        os.remove(temp_filename)
+            # CHECK: Is this ID in our map?
+            if page_id in id_to_title:
+                # parts[4] is the view count
+                views = int(parts[4])
+                wid2pv[page_id] = views
 
+        except ValueError:
+            continue
 
-if __name__ == "__main__":
-    create_and_upload_pageviews()
+        # Progress Indicator (so you know it's not stuck)
+        count += 1
+        if count % 1_000_000 == 0:
+            print(f"Processed {count} relevant lines... (Found {len(wid2pv)} matches)")
+
+# Step 3: Save the Result
+print(f"Finished. Total matching pages with views: {len(wid2pv)}")
+print(f"Saving to {output_path}...")
+
+with open(output_path, 'wb') as f:
+    pickle.dump(wid2pv, f)
+
+print(f"Done! Took {(time.time() - start_time) / 60:.2f} minutes.")

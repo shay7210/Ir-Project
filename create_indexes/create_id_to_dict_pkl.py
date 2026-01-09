@@ -7,7 +7,7 @@ from google.cloud import storage
 # --- CONFIGURATION ---
 BUCKET_NAME = 'wikipidia_ir_project'
 KEY_FILE_PATH = '../my_gcp_key.json'
-OUTPUT_FILE = '../id_to_title.pkl'
+OUTPUT_FILE = '../inverted_indexes_pkls/id_to_title.pkl'
 
 
 def create_dict_debug():
