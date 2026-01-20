@@ -19,7 +19,12 @@
 
         .result-title { font-size: 18px; font-weight: bold; color: #1a0dab; text-decoration: none; display: block; margin-bottom: 4px; }
         .result-title:hover { text-decoration: underline; }
-        .result-id { font-size: 12px; color: #006621; }
+
+        .result-meta { font-size: 12px; color: #555; margin-top: 5px; display: flex; gap: 15px; }
+        .meta-tag { background: #eef; padding: 2px 6px; border-radius: 4px; border: 1px solid #dde; }
+
+        /* Special style for single metric results */
+        .metric-result { font-size: 24px; text-align: center; color: #28a745; font-weight: bold; padding: 20px; }
 
         .count { color: #666; margin-bottom: 10px; font-size: 0.9em; text-align: right; }
     </style>
@@ -28,14 +33,17 @@
     <h1>🔎 Wiki Search Engine</h1>
 
     <div class="search-box">
-        <input type="text" id="query" placeholder="Enter search query..." onkeydown="if(event.key==='Enter') runSearch()">
+        <input type="text" id="query" placeholder="Enter query or Doc ID..." onkeydown="if(event.key==='Enter') runSearch()">
         <select id="endpoint">
             <option value="search">Best Match (/search)</option>
             <option value="search_title">Title Only (/search_title)</option>
             <option value="search_body">Body Only (/search_body)</option>
             <option value="search_anchor">Anchor Text (/search_anchor)</option>
+            <option disabled>──────────</option>
+            <option value="get_pagerank">Get PageRank (Enter ID)</option>
+            <option value="get_pageview">Get PageViews (Enter ID)</option>
         </select>
-        <button onclick="runSearch()">Search</button>
+        <button onclick="runSearch()">Go</button>
     </div>
 
     <div id="status" class="count"></div>
@@ -43,7 +51,7 @@
 
     <script>
         async function runSearch() {
-            const query = document.getElementById('query').value;
+            const query = document.getElementById('query').value.trim();
             const endpoint = document.getElementById('endpoint').value;
             const resultsList = document.getElementById('results');
             const statusDiv = document.getElementById('status');
@@ -51,36 +59,101 @@
             if (!query) return;
 
             // UI Feedback
-            statusDiv.textContent = "Searching...";
+            statusDiv.textContent = "Processing...";
             resultsList.innerHTML = "";
 
+            // --- BRANCH 1: Single Metric Lookup (PageRank / PageView) ---
+            if (endpoint === 'get_pagerank' || endpoint === 'get_pageview') {
+                try {
+                    // Convert input to integer ID
+                    const docId = parseInt(query);
+                    if (isNaN(docId)) {
+                        alert("Please enter a valid numeric Document ID.");
+                        return;
+                    }
+
+                    // Send as a list [id] because your backend expects a list
+                    const response = await fetch(`/${endpoint}`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify([docId])
+                    });
+
+                    const data = await response.json();
+                    const value = data[0]; // Backend returns a list [value]
+
+                    // Display nice big result
+                    const label = endpoint === 'get_pagerank' ? "PageRank" : "Page Views";
+                    resultsList.innerHTML = `
+                        <div class="result-item">
+                            <div style="text-align:center; color:#555;">Doc ID: ${docId}</div>
+                            <div class="metric-result">${label}: ${value}</div>
+                        </div>
+                    `;
+                    statusDiv.textContent = "Done.";
+
+                } catch (error) {
+                    console.error(error);
+                    statusDiv.textContent = "Error fetching metric.";
+                }
+                return; // Stop here, don't run the normal search
+            }
+
+
+            // --- BRANCH 2: Normal Text Search ---
             try {
+                // 1. Fetch Search Results
                 const response = await fetch(`/${endpoint}?query=${encodeURIComponent(query)}`);
-                const data = await response.json();
+                const searchData = await response.json();
 
-                statusDiv.textContent = `Found ${data.length} results for "${query}"`;
-
-                if (data.length === 0) {
+                if (searchData.length === 0) {
+                    statusDiv.textContent = `Found 0 results for "${query}"`;
                     resultsList.innerHTML = "<li class='result-item'>No results found.</li>";
                     return;
                 }
 
-                // --- KEY FIX IS HERE ---
-                data.forEach(item => {
-                    // Backend now returns [id, title]
-                    // If title is missing/null, fallback to "No Title"
+                statusDiv.textContent = `Found ${searchData.length} results for "${query}"`;
+
+                // 2. Extract IDs for batch processing
+                const docIds = searchData.map(item => item[0]);
+
+                // 3. Fetch PageRank and PageViews in parallel
+                const [pagerankRes, pageviewRes] = await Promise.all([
+                    fetch('/get_pagerank', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(docIds)
+                    }),
+                    fetch('/get_pageview', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(docIds)
+                    })
+                ]);
+
+                const pageranks = await pagerankRes.json();
+                const pageviews = await pageviewRes.json();
+
+                // 4. Combine and Render
+                searchData.forEach((item, index) => {
                     const docId = item[0];
                     const title = item[1] || "No Title";
+
+                    const pr = pageranks[index] ? pageranks[index].toFixed(4) : "0";
+                    const pv = pageviews[index] ? pageviews[index].toLocaleString() : "0";
 
                     const li = document.createElement('li');
                     li.className = 'result-item';
 
-                    // Create a clickable link to Wikipedia
                     const wikiUrl = `https://en.wikipedia.org/wiki?curid=${docId}`;
 
                     li.innerHTML = `
                         <a href="${wikiUrl}" target="_blank" class="result-title">${title}</a>
-                        <div class="result-id">Doc ID: ${docId}</div>
+                        <div class="result-meta">
+                            <span class="meta-tag">ID: ${docId}</span>
+                            <span class="meta-tag">PageRank: ${pr}</span>
+                            <span class="meta-tag">Views: ${pv}</span>
+                        </div>
                     `;
                     resultsList.appendChild(li);
                 });

@@ -230,7 +230,7 @@ class MyFlaskApp(Flask):
 
         # --- FIX 1: ADD THIS LINE ---
         print("⬇️ Downloading Postings to Local Disk...")
-        download_all_bin_files()
+     #   download_all_bin_files()
         # ----------------------------
 
         print("LOADING DATA...")

@@ -6,7 +6,7 @@ import time  # <--- Added for timing
 # ==========================================
 # 1. CONFIGURATION
 # ==========================================
-SEARCH_URL = "http://34.133.219.233:9000//search"
+SEARCH_URL = "http://34.133.219.233:9000/search"
 QUERIES_FILE = "../queries_train.json"
 
 
